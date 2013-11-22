@@ -1,0 +1,8 @@
+* AmiGO OpenSearch
+  The response times seem to be just slow enough when deployed on
+  OpenShift the the easier/smaller responses are dropped by the time
+  they come back (no display)
+** Testing
+   node server.js
+** Deployment
+   push to OpenShift
