@@ -52,9 +52,9 @@ var AmiGOOpenSearch = function() {
         };
 
 	// It looks like the OpenShift environment is a little funny
-	// around ports, so try and keep the deplymoent environment
-	// clear of "IP:PORT" with just "IP".
-	self.hostport = self.ipaddress;
+	// around ports and hostname/ipaddress, so try and keep the
+	// deplymoent environment clear of "IP:PORT" with just "IP".
+	self.hostport = process.env.OPENSHIFT_NODEJS_PORT || self.ipaddress;
 	if( self.port == non_std_port ){
 	    self.hostport = self.hostport + ':' + non_std_port;
 	}
