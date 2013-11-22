@@ -36,10 +36,13 @@ var AmiGOOpenSearch = function() {
     ///
 
     // Set up server IP address and port # using env variables/defaults.
+    // WARNING: Port stuff gets weird: https://www.openshift.com/forums/openshift/nodejs-websockets-sockjs-and-other-client-hostings
     self.setupVariables = function() {
+	var non_std_port = 8910;
+
         // Set the environment variables we need.
         self.ipaddress = process.env.OPENSHIFT_NODEJS_IP;
-        self.port = process.env.OPENSHIFT_NODEJS_PORT || 8910; // more non-std
+        self.port = process.env.OPENSHIFT_NODEJS_PORT || non_std_port;
 
         if( typeof self.ipaddress === "undefined" ){
             // Log errors on OpenShift but continue w/ 127.0.0.1 - this
@@ -47,6 +50,14 @@ var AmiGOOpenSearch = function() {
             console.warn('No OPENSHIFT_NODEJS_IP var, using 127.0.0.1');
             self.ipaddress = "127.0.0.1";
         };
+
+	// It looks like the OpenShift environment is a little funny
+	// around ports, so try and keep the deplymoent environment
+	// clear of "IP:PORT" with just "IP".
+	self.hostport = self.ipaddress;
+	if( self.port == non_std_port ){
+	    self.hostport = self.hostport + ':' + non_std_port;
+	}
     };
 
     ///
@@ -65,9 +76,6 @@ var AmiGOOpenSearch = function() {
     // Default top-level page. Just say "hi!"
     self.static_index = function(){
 
-	var host = self.ipaddress;
-	var port = self.port;
-
 	var indexdoc = [
 	    '<html>',
 	    '<head>',// profile="http://a9.com/-/spec/opensearch/1.1/">',
@@ -76,12 +84,12 @@ var AmiGOOpenSearch = function() {
 	    '<link',
 	    'rel="search"',
 	    'type="application/opensearchdescription+xml"',
-	    'href="http://' + host + ':' + port + '/osd_term.xml"',
+	    'href="http://' + self.hostport + '/osd_term.xml"',
 	    'title="GO Search (term)" />',
 	    '<link',
 	    'rel="search"',
 	    'type="application/opensearchdescription+xml"',
-	    'href="http://' + host + ':' + port + '/osd_gp.xml"',
+	    'href="http://' + self.hostport + '/osd_gp.xml"',
 	    'title="GO Search (gene product)" />',
 	    '</head>',
 	    '<body>',
@@ -99,9 +107,6 @@ var AmiGOOpenSearch = function() {
     };
 
     self.static_osd = function(type){
-
-	var host = self.ipaddress;
-	var port = self.port;
 
 	// Use mustache for XML generation.
 	var osddoc_tmpl = [
@@ -121,7 +126,7 @@ var AmiGOOpenSearch = function() {
             'template="http://amigo2.berkeleybop.org/cgi-bin/amigo2/amigo/medial_search?q={searchTerms}" />',
             '<Url',
             'type="application/x-suggestions+json"',
-            'template="http://' + host + ':' + port + '/{{type}}/{searchTerms}" />',
+            'template="http://' + self.hostport + '/{{type}}/{searchTerms}" />',
             // '<moz:SearchForm>' + app_base + '</moz:SearchForm>',
             '<moz:SearchForm>http://amigo2.berkeleybop.org/</moz:SearchForm>',
             '</OpenSearchDescription>'
