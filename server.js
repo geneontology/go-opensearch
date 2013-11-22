@@ -17,6 +17,12 @@ var fs = require('fs');
 var bbop = require('bbop').bbop;
 var amigo = require('amigo').amigo;
 
+// Figure out our base and URLs we'll need to aim this locally.
+var linker = new amigo.linker();
+var medial_query = linker.url('', 'medial_search');
+var sd = new amigo.data.server();
+var app_base = sd.app_base();
+
 ///
 /// Define the sample application.
 ///
@@ -98,12 +104,6 @@ var AmiGOOpenSearch = function() {
 	var host = self.ipaddress;
 	var port = self.port;
 
-	// Figure out our base and URLs we'll need to aim this locally.
-	var linker = new amigo.linker();
-	var medial_query = linker.url('', 'medial_search');
-	var sd = new amigo.data.server();
-	var app_base = sd.app_base();
-
 	// Use mustache for XML generation.
 	var osddoc_tmpl = [
 	    '<?xml version="1.0" encoding="UTF-8"?>',
@@ -118,11 +118,13 @@ var AmiGOOpenSearch = function() {
 	    '<Url',
             'type="text/html"',
             'method="GET"',
-            'template="' + medial_query + '{searchTerms}" />',
+	    // 'template="' + medial_query + '{searchTerms}" />',
+            'template="http://amigo2.berkeleybop.org/cgi-bin/amigo2/amigo/medial_search?q={searchTerms}" />',
             '<Url',
             'type="application/x-suggestions+json"',
             'template="http://' + host + ':' + port + '/{{type}}/{searchTerms}" />',
-            '<moz:SearchForm>' + app_base + '</moz:SearchForm>',
+            // '<moz:SearchForm>' + app_base + '</moz:SearchForm>',
+            '<moz:SearchForm>http://amigo2.berkeleybop.org/</moz:SearchForm>',
             '</OpenSearchDescription>'
 	].join(' ');
 
@@ -204,70 +206,125 @@ var AmiGOOpenSearch = function() {
     /// App server functions (main app logic here).
     ///
 
-    // // Create the routing table entries + handlers for the application.
-    // self.createRoutes = function() {
-    //     self.routes = { };
-
-    // 	var ip = self.ipaddress;
-    // 	var pt = self.port;
-
-    // 	// Pre-packaged routes.
-    //     self.routes['/asciimo'] = function(req, res) {
-    //         var link = "http://i.imgur.com/kmbjB.png";
-    //         res.send("<html><body><img src='" + link + "'></body></html>");
-    //     };
-    //     self.routes['/'] = function(req, res) {
-    //         res.setHeader('Content-Type', 'text/html');
-    //         res.send(self.cache_get('index.html') );
-    //     };
-
-    // 	// Test routes.
-    // 	self.routes['/osd_term.xml'] = function(req, res){
-    // 	    standard_response(res, 200, 'application/xml',
-    // 			      self.static_osd(self.ipaddress, self.port, 'term'));
-    // 	};
-    // 	self.routes['/osd_gp.xml'] = function(req, res){
-    // 	    standard_response(res, 200, 'application/xml', osddoc_gp);
-    // 	};
-    // };
-
     // Initialize the server (express) and create the routes and register
     // the handlers.
     self.initializeServer = function() {
         //self.createRoutes();
         self.app = express();
 
-	// Pre-packaged routes.
-        self.app.get('/asciimo', function(req, res) {
-		 var link = "http://i.imgur.com/kmbjB.png";
-		 res.send("<html><body><img src='" + link + "'></body></html>");
-		     });
-        self.app.get('/', function(req, res) {
-			 res.setHeader('Content-Type', 'text/html');
-			 res.send(self.cache_get('index.html') );
-		     });
+	///
+	/// Static routes.
+	///
 
-	// app.get('/', function(req, res){
-	// 	    standard_response(res, 200, 'text/html', indexdoc);
-	// 	});
-	self.app.get('/osd_term.xml', function(req, res){
-		 self.standard_response(res, 200, 'application/xml',
-					self.static_osd('term'));
+	// // Pre-packaged routes.
+        // self.app.get('/asciimo',
+	// 	     function(req, res) {
+	// 		 var link = "http://i.imgur.com/kmbjB.png";
+	// 		 res.send("<html><body><img src='" +
+	// 			  link + "'></body></html>");
+	// 	     });
+        // self.app.get('/', function(req, res) {
+	// 		 res.setHeader('Content-Type', 'text/html');
+	// 		 res.send(self.cache_get('index.html') );
+	// 	     });
+
+	self.app.get('/',
+		     function(req, res){
+			 self.standard_response(res, 200, 'text/html',
+						self.static_index());
 		     });
-	self.app.get('/osd_gp.xml', function(req, res){
-		 self.standard_response(res, 200, 'application/xml',
-					self.static_osd('gene_product'));
+	self.app.get('/osd_term.xml',
+		     function(req, res){
+			 self.standard_response(res, 200, 'application/xml',
+						self.static_osd('term'));
+		     });
+	self.app.get('/osd_gp.xml',
+		     function(req, res){
+			 self.standard_response(res, 200, 'application/xml',
+						self.static_osd('gene_product'));
 		     });
 	// TODO: This obviously does not do anything than supress some types
 	// of error messages.
-	self.app.get('/favicon.ico', function(req, res){
-		  self.standard_response(res, 200, 'image/x-icon', '');
+	self.app.get('/favicon.ico',
+		     function(req, res){
+			 self.standard_response(res, 200, 'image/x-icon', '');
 		     });
 
-        // //  Add handlers for the app (from the routes).
-        // for (var r in self.routes) {
-        //     self.app.get(r, self.routes[r]);
-        // }
+	///
+	/// Dynamic OpenSearch components.
+	///
+
+	// Define the GOlr request conf.
+	var server_loc = 'http://golr.berkeleybop.org/';
+	var gconf = new bbop.golr.conf(amigo.data.golr);
+
+	// The request functions I use are very similar.
+	function create_request_function(personality, doc_type,
+					 id_field, label_field, link_type){
+
+	    return function(req, res) {
+
+		//console.log(req.route);
+		//console.log(req.route.params['query']);
+		var query = req.route.params['query'] || '';
+
+		// Try AmiGO 2 action.
+		var go = new bbop.golr.manager.nodejs(server_loc, gconf);
+		go.set_personality(personality); // profile in gconf
+		go.add_query_filter('document_category', doc_type);
+
+		// Define what we do when our GOlr (async) information
+		// comes back within the scope of the response we need to end.
+		function golr_callback_action(gresp){
+
+		    // Return caches for the values we'll collect.
+		    var ret_terms = [];
+		    var ret_descs = [];
+		    var ret_links = [];
+
+		    // Gather document info if available.
+		    //var found_docs = gresp.documents();		
+		    bbop.core.each(gresp.documents(),
+				   function(doc){
+				       var id = doc[id_field];
+				       var label = doc[label_field];
+
+				       ret_terms.push(label);
+				       ret_descs.push(id);
+				       ret_links.push(linker.url(id,link_type));
+				   });
+
+		    // Assemble final answer into the OpenSearch JSON
+		    // form.
+		    var ret_body = [query];
+		    ret_body.push(ret_terms);
+		    ret_body.push(ret_descs);
+		    ret_body.push(ret_links);
+
+		    // Back to res?
+		    //console.log('send response');
+		    self.standard_response(res, 200, 'application/json',
+	    				   bbop.core.to_string(ret_body));
+		    //console.log('send response');
+		}
+
+		// Run the agent action.
+		go.set_comfy_query(query);
+		go.register('search', 'do', golr_callback_action);
+		go.update('search');
+		//console.log('update: search');
+	    };
+	}
+
+	// Dynamic GOlr output.
+	self.app.get('/term/:query',
+		     create_request_function('ontology', 'ontology_class',
+					     'annotation_class', 'annotation_class_label',
+					     'term'));
+	self.app.get('/gene_product/:query',
+		     create_request_function('bioentity', 'bioentity',
+					     'bioentity', 'bioentity_label',
+					     'gene_product'));
     };
 
     // Initializes the sample application.
