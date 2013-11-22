@@ -39,7 +39,6 @@ var AmiGOOpenSearch = function() {
     self.setupVariables = function() {
         // Set the environment variables we need.
         self.ipaddress = process.env.OPENSHIFT_NODEJS_IP;
-        //self.port = process.env.OPENSHIFT_NODEJS_PORT || 8080;
         self.port = process.env.OPENSHIFT_NODEJS_PORT || 8910; // more non-std
 
         if( typeof self.ipaddress === "undefined" ){
