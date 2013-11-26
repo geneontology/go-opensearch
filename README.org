@@ -1,7 +1,14 @@
-* AmiGO OpenSearch
+* GO OpenSearch
+
+  A self-contained OpenSearch server using BBOP JS and the GOlr
+  backed. Designed to integrate with AmiGO 2. Deployed on OpenShift.
+
   The response times seem to be just slow enough when deployed on
   OpenShift the the easier/smaller responses are dropped by the time
   they come back (no display)
+
+  The public (non-deployment) repo is at:
+  https://github.com/kltm/go-opensearch
 ** Testing
    node server.js
 ** Deployment
