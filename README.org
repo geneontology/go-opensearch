@@ -10,6 +10,6 @@
   The public (non-deployment) repo is at:
   https://github.com/kltm/go-opensearch
 ** Testing
-   node server.js
+   % node server.js
 ** Deployment
-   push to OpenShift
+   Push to OpenShift.
