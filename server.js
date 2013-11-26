@@ -172,7 +172,7 @@ var AmiGOOpenSearch = function() {
         }
 
         // Local cache for static content.
-        self.zcache['index.html'] = fs.readFileSync('./index.html');
+        self.zcache['index.html'] = fs.readFileSync('./html/index.html');
     };
 
     // Retrieve entry (content) from cache.
@@ -227,10 +227,10 @@ var AmiGOOpenSearch = function() {
 	// 		 res.send("<html><body><img src='" +
 	// 			  link + "'></body></html>");
 	// 	     });
-        // self.app.get('/', function(req, res) {
-	// 		 res.setHeader('Content-Type', 'text/html');
-	// 		 res.send(self.cache_get('index.html') );
-	// 	     });
+        self.app.get('/index.html', function(req, res) {
+			 res.setHeader('Content-Type', 'text/html');
+			 res.send(self.cache_get('index.html') );
+		     });
 
 	self.app.get('/',
 		     function(req, res){
