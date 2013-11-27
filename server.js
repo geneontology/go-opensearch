@@ -60,7 +60,7 @@ var AmiGOOpenSearch = function() {
 
 	    bbop.core.each(process.env, 
 			   function(key,val){
-			       console.log(key + ':' + val);
+			       console.log(key +':'+ val);
 			   });
 
             console.warn('HEROKU_NODEJS');
