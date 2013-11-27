@@ -38,25 +38,40 @@ var AmiGOOpenSearch = function() {
     // Set up server IP address and port # using env variables/defaults.
     // WARNING: Port stuff gets weird: https://www.openshift.com/forums/openshift/nodejs-websockets-sockjs-and-other-client-hostings
     self.setupVariables = function() {
-	var non_std_port = 8910;
 
-        // Set the environment variables we need.
-        self.ipaddress = process.env.OPENSHIFT_NODEJS_IP;
-        self.port = process.env.OPENSHIFT_NODEJS_PORT || non_std_port;
+	var non_std_local_port = 8910;
 
-        if( typeof self.ipaddress === "undefined" ){
-            // Log errors on OpenShift but continue w/ 127.0.0.1 - this
-            // allows us to run/test the app locally.
-            console.warn('No OPENSHIFT_NODEJS_IP var, using 127.0.0.1');
+	self.IS_ENV_OPENSHIFT = false;
+	self.IS_ENV_HEROKU = false;
+	self.IS_ENV_LOCAL = false;
+
+	if( process.env.OPENSHIFT_APP_DNS ){
+	    self.IS_ENV_OPENSHIFT = true;	    
+
+            self.ipaddress = process.env.OPENSHIFT_NODEJS_IP;
+            self.port = process.env.OPENSHIFT_NODEJS_PORT;
+	    self.hostport = process.env.OPENSHIFT_APP_DNS;
+
+            console.warn('OPENSHIFT_NODEJS');
+	}else if( process.env.PORT ){
+	    self.IS_ENV_HEROKU = true;
+
+            self.port = process.env.PORT || non_std_local_port;
+
+	    bbop.core.each(process.env, 
+			   function(key,val){
+			       console.log(key + ':' + val);
+			   });
+
+            console.warn('HEROKU_NODEJS');
+	}else{
+	    self.IS_ENV_LOCAL = true;
+
             self.ipaddress = "127.0.0.1";
-        };
+            self.port = non_std_local_port;
+	    self.hostport = self.hostport + ':' + non_std_local_port;	    
 
-	// It looks like the OpenShift environment is a little funny
-	// around ports and hostname/ipaddress, so try and keep the
-	// deplymoent environment clear of "IP:PORT" with just "IP".
-	self.hostport = process.env.OPENSHIFT_APP_DNS || self.ipaddress;
-	if( self.port == non_std_port ){
-	    self.hostport = self.hostport + ':' + non_std_port;
+            console.warn('LOCAL_NODEJS');
 	}
     };
 
@@ -220,18 +235,13 @@ var AmiGOOpenSearch = function() {
 	/// Static routes.
 	///
 
-	// // Pre-packaged routes.
-        // self.app.get('/asciimo',
-	// 	     function(req, res) {
-	// 		 var link = "http://i.imgur.com/kmbjB.png";
-	// 		 res.send("<html><body><img src='" +
-	// 			  link + "'></body></html>");
-	// 	     });
+	// Cached static routes.
         self.app.get('/index.html', function(req, res) {
 			 res.setHeader('Content-Type', 'text/html');
 			 res.send(self.cache_get('index.html') );
 		     });
 
+	// Internal static routes.
 	self.app.get('/',
 		     function(req, res){
 			 self.standard_response(res, 200, 'text/html',
@@ -255,7 +265,7 @@ var AmiGOOpenSearch = function() {
 		     });
 
 	///
-	/// Dynamic OpenSearch components.
+	/// Dynamic OpenSearch components/routes.
 	///
 
 	// Define the GOlr request conf.
@@ -342,12 +352,27 @@ var AmiGOOpenSearch = function() {
     };
 
     // Start the server (starts up the sample application).
+    // Either in Heroku, Openshift, or various local.
     self.start = function() {
-        //  Start the app on the specific interface (and port).
-        self.app.listen(self.port, self.ipaddress, function() {
-            console.log('%s: Node server started on %s:%d ...',
-                        Date(Date.now() ), self.ipaddress, self.port);
-        });
+	if( self.IS_ENV_HEROKU ){
+	    // Heroku seems to want a more minimal launch.
+	    self.app.listen(self.port,
+			    function() {
+				console.log('%s: Node started on %s:%d ...',
+					    Date(Date.now()),
+					    self.ipaddress || '???',
+					    self.port);
+			    });
+	}else{
+            // Start the app on the specific interface (and port).
+            self.app.listen(self.port, self.ipaddress,
+			    function() {
+				console.log('%s: Node started on %s:%d ...',
+					    Date(Date.now()),
+					    self.ipaddress,
+					    self.port);
+			    });
+	}
     };
 };
 
