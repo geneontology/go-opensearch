@@ -50,26 +50,22 @@ var AmiGOOpenSearch = function() {
 
             self.ipaddress = process.env.OPENSHIFT_NODEJS_IP;
             self.port = process.env.OPENSHIFT_NODEJS_PORT;
-	    self.hostport = process.env.OPENSHIFT_APP_DNS;
+	    self.hostport = 'http://' + process.env.OPENSHIFT_APP_DNS;
 
             console.warn('OPENSHIFT_NODEJS');
 	}else if( process.env.PORT ){
 	    self.IS_ENV_HEROKU = true;
 
             self.port = process.env.PORT || non_std_local_port;
-
-	    bbop.core.each(process.env, 
-			   function(key,val){
-			       console.log(key +':'+ val);
-			   });
+	    self.hostport = '';
 
             console.warn('HEROKU_NODEJS');
 	}else{
 	    self.IS_ENV_LOCAL = true;
 
-            self.ipaddress = "127.0.0.1";
+            self.ipaddress = '127.0.0.1';
             self.port = non_std_local_port;
-	    self.hostport = self.hostport + ':' + non_std_local_port;	    
+	    self.hostport = 'http://'+ self.ipaddress +':'+ non_std_local_port;
 
             console.warn('LOCAL_NODEJS');
 	}
@@ -99,12 +95,12 @@ var AmiGOOpenSearch = function() {
 	    '<link',
 	    'rel="search"',
 	    'type="application/opensearchdescription+xml"',
-	    'href="http://' + self.hostport + '/osd_term.xml"',
+	    'href="' + self.hostport + '/osd_term.xml"',
 	    'title="GO Search (term)" />',
 	    '<link',
 	    'rel="search"',
 	    'type="application/opensearchdescription+xml"',
-	    'href="http://' + self.hostport + '/osd_gp.xml"',
+	    'href="' + self.hostport + '/osd_gp.xml"',
 	    'title="GO Search (gene product)" />',
 	    '</head>',
 	    '<body>',
@@ -141,7 +137,7 @@ var AmiGOOpenSearch = function() {
             'template="http://amigo2.berkeleybop.org/cgi-bin/amigo2/amigo/medial_search?q={searchTerms}" />',
             '<Url',
             'type="application/x-suggestions+json"',
-            'template="http://' + self.hostport + '/{{type}}/{searchTerms}" />',
+            'template="' + self.hostport + '/{{type}}/{searchTerms}" />',
             // '<moz:SearchForm>' + app_base + '</moz:SearchForm>',
             '<moz:SearchForm>http://amigo2.berkeleybop.org/</moz:SearchForm>',
             '</OpenSearchDescription>'
