@@ -1,5 +1,5 @@
 {
-  "name": "AmiGO OpenSearch Service",
+  "name": "go-opensearch",
   "version": "0.0.9",
   "description": "OpenSearch server for AmiGO (etc.) using the GOlr backend.",
   "keywords": [
