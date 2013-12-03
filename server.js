@@ -15,7 +15,7 @@ var fs = require('fs');
 
 // Required add-on libs.
 var bbop = require('bbop').bbop;
-var amigo = require('amigo').amigo;
+var amigo = require('amigo2').amigo;
 
 // Figure out our base and URLs we'll need to aim this locally.
 var linker = new amigo.linker();
